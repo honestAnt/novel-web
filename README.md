@@ -95,3 +95,13 @@ cd client && npm run build
 
 # 构建后的文件在 client/dist 目录
 ```
+
+## 截图
+### 首页
+![alt text](image.png)
+
+### 详情页
+![alt text](image-1.png)
+
+### 阅读页面
+![alt text](image-2.png)

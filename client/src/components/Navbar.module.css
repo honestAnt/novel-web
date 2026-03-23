@@ -122,6 +122,30 @@
   font-weight: 600;
 }
 
+.rightActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.themeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.themeBtn:hover {
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 15px;

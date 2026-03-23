@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(135deg, #2a1f4e 0%, #1a1a2e 100%);
+  background: linear-gradient(135deg, #c2410c 0%, #7c2d12 100%);
 }
 
 .coverIcon {
@@ -145,6 +145,26 @@
 
 .worldInfo strong {
   color: var(--gold);
+}
+
+.factions {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.factions ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+}
+
+.factions li {
+  padding: 4px 0;
+}
+
+.factions li strong {
+  color: var(--accent);
 }
 
 .actions {

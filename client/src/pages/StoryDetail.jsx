@@ -31,7 +31,11 @@ function StoryDetail() {
   const fetchStory = async () => {
     try {
       const res = await fetch(`/api/stories/${id}`)
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
       const data = await res.json()
+      console.log('Story data:', data)
       setStory(data)
     } catch (error) {
       console.error('Failed to fetch story:', error)
@@ -161,7 +165,22 @@ function StoryDetail() {
               <div className={styles.worldInfo}>
                 <h3>世界设定</h3>
                 {story.world_settings.cultivation_system && (
-                  <p><strong>修炼体系:</strong> {story.world_settings.cultivation_system}</p>
+                  <div>
+                    <p><strong>核心:</strong> {story.world_settings.cultivation_system.core}</p>
+                    {story.world_settings.cultivation_system.levels && (
+                      <p><strong>境界:</strong> {story.world_settings.cultivation_system.levels.join(' → ')}</p>
+                    )}
+                  </div>
+                )}
+                {story.world_settings.factions && (
+                  <div className={styles.factions}>
+                    <strong>势力:</strong>
+                    <ul>
+                      {Object.entries(story.world_settings.factions).map(([name, desc]) => (
+                        <li key={name}><strong>{name}:</strong> {desc}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}

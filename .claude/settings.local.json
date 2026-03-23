@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3001/api/genres)",
+      "Bash(curl -s http://localhost:3001/api/stories)",
+      "Bash(pg_isready -h localhost -p 5432 -U openclaw)",
+      "Bash(curl -s http://localhost:3001/api/stories/1/chapters)"
+    ]
+  }
+}

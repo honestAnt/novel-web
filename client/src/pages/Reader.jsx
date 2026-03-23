@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import styles from './Reader.module.css'
 
 function Reader() {
@@ -12,14 +13,27 @@ function Reader() {
   const [chapters, setChapters] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // 从 localStorage 加载阅读器设置
+  const loadReaderSettings = () => {
+    const saved = localStorage.getItem('novel_reader_settings')
+    if (saved) {
+      return JSON.parse(saved)
+    }
+    return null
+  }
+
+  const savedSettings = loadReaderSettings()
+
   // 阅读器设置
   const [showSettings, setShowSettings] = useState(false)
   const [showToc, setShowToc] = useState(false)
   const [showTopBar, setShowTopBar] = useState(true)
-  const [fontSize, setFontSize] = useState(18)
-  const [lineHeight, setLineHeight] = useState(1.8)
-  const [brightness, setBrightness] = useState(100)
-  const [bgColor, setBgColor] = useState('#1c1c1c')
+  const [fontSize, setFontSize] = useState(savedSettings?.fontSize || 18)
+  const [lineHeight, setLineHeight] = useState(savedSettings?.lineHeight || 1.8)
+  const [letterSpacing, setLetterSpacing] = useState(savedSettings?.letterSpacing || 0)
+  const [fontFamily, setFontFamily] = useState(savedSettings?.fontFamily || '"Noto Serif SC", serif')
+  const [brightness, setBrightness] = useState(savedSettings?.brightness || 100)
+  const [bgColor, setBgColor] = useState(savedSettings?.bgColor || '#1c1c1c')
 
   const bgOptions = [
     { name: '夜间', color: '#1c1c1c', textColor: '#c9c9c9' },
@@ -28,12 +42,92 @@ function Reader() {
     { name: '墨水', color: '#2a2a2a', textColor: '#c3c3c3' },
   ]
 
-  const [textColor, setTextColor] = useState('#c9c9c9')
+  const [customBgColor, setCustomBgColor] = useState(savedSettings?.customBgColor || '#1c1c1c')
+  const [customTextColor, setCustomTextColor] = useState(savedSettings?.customTextColor || '#c9c9c9')
+
+  const fontOptions = [
+    { name: '默认', value: '"Noto Serif SC", serif' },
+    { name: '黑体', value: '"Noto Sans SC", sans-serif' },
+    { name: '楷体', value: '"LXGW WenKai", cursive' },
+    { name: '宋体', value: '"SimSun", serif' },
+  ]
+
+  const [textColor, setTextColor] = useState(savedSettings?.textColor || '#c9c9c9')
 
   const handleBgChange = (bg) => {
     setBgColor(bg.color)
     setTextColor(bg.textColor)
   }
+
+  const handleCustomBgChange = (color) => {
+    setCustomBgColor(color)
+    setBgColor(color)
+    // 根据背景亮度自动设置文字颜色
+    const hex = color.replace('#', '')
+    const r = parseInt(hex.substr(0, 2), 16)
+    const g = parseInt(hex.substr(2, 2), 16)
+    const b = parseInt(hex.substr(4, 2), 16)
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
+    const newTextColor = brightness > 128 ? '#333333' : '#c9c9c9'
+    setCustomTextColor(newTextColor)
+    setTextColor(newTextColor)
+  }
+
+  // 检测全局白色主题（只在首次加载时应用，不覆盖用户保存的设置）
+  useEffect(() => {
+    const updateTheme = () => {
+      const isWhiteMode = document.body.classList.contains('white-mode')
+      // 检查用户是否已有自定义背景设置
+      const hasCustomBg = savedSettings && savedSettings.bgColor
+
+      if (!hasCustomBg) {
+        // 只有在没有保存设置时才应用主题
+        if (isWhiteMode) {
+          setBgColor('#f5f5f5')
+          setTextColor('#333333')
+        } else {
+          // 恢复默认深色主题
+          setBgColor('#1c1c1c')
+          setTextColor('#c9c9c9')
+        }
+      }
+    }
+
+    // 初始检测
+    updateTheme()
+
+    // 监听 localStorage 变化
+    const handleStorageChange = (e) => {
+      if (e.key === 'novel_white_mode') {
+        if (e.newValue === 'true') {
+          document.body.classList.add('white-mode')
+        } else {
+          document.body.classList.remove('white-mode')
+        }
+        updateTheme()
+      }
+    }
+
+    // 监听自定义主题切换事件
+    const handleThemeChange = () => {
+      updateTheme()
+    }
+
+    // 监听 class 变化
+    const observer = new MutationObserver(() => {
+      updateTheme()
+    })
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('theme-change', handleThemeChange)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('theme-change', handleThemeChange)
+    }
+  }, [])
 
   // 保存阅读进度
   useEffect(() => {
@@ -43,6 +137,26 @@ function Reader() {
       localStorage.setItem('novel_reading_progress', JSON.stringify(progress))
     }
   }, [chapterId, storyId])
+
+  // 保存阅读器设置到 localStorage（只在设置改变时保存，不在首次渲染时保存）
+  useEffect(() => {
+    // 延迟保存，确保不会覆盖已有的设置
+    const timer = setTimeout(() => {
+      const settings = {
+        fontSize,
+        lineHeight,
+        letterSpacing,
+        fontFamily,
+        brightness,
+        bgColor,
+        textColor,
+        customBgColor,
+        customTextColor,
+      }
+      localStorage.setItem('novel_reader_settings', JSON.stringify(settings))
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [fontSize, lineHeight, letterSpacing, fontFamily, brightness, bgColor, textColor, customBgColor, customTextColor])
 
   // 获取章节列表
   useEffect(() => {
@@ -124,74 +238,105 @@ function Reader() {
       className={styles.reader}
       style={{
         backgroundColor: bgColor,
-        color: textColor,
         filter: `brightness(${brightness}%)`,
-        fontSize: `${fontSize}px`,
-        lineHeight: lineHeight
       }}
     >
-      {/* 顶部工具栏 */}
-      <div className={`${styles.topBar} ${showTopBar ? styles.visible : ''}`}>
+      {/* 顶部工具栏 - 始终显示 */}
+      <div className={styles.topBar}>
         <button onClick={() => navigate(`/story/${storyId}`)} className={styles.backBtn}>
           ← 返回
         </button>
         <h1 className={styles.chapterTitle}>{chapter?.title || '加载中...'}</h1>
         <div className={styles.topActions}>
           <button onClick={() => setShowToc(!showToc)} className={styles.iconBtn}>
-            📑
+            章节
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className={styles.iconBtn}>
-            Aa
+            调整
           </button>
         </div>
       </div>
 
-      {/* 设置面板 */}
-      {showSettings && (
-        <div className={styles.settingsPanel}>
+      {/* 左侧设置面板 */}
+      <div className={`${styles.settingsPanel} ${showSettings ? styles.open : ''}`}>
+        <div className={styles.settingsHeader}>
+          <h3>阅读设置</h3>
+          <button onClick={() => setShowSettings(false)} className={styles.closeSettingsBtn}>✕</button>
+        </div>
+
+        <div className={styles.settingsContent}>
+          {/* 字号 */}
           <div className={styles.settingItem}>
-            <label>字号</label>
-            <div className={styles.sliderContainer}>
-              <span>A-</span>
-              <input
-                type="range"
-                min="14"
-                max="28"
-                value={fontSize}
-                onChange={(e) => setFontSize(parseInt(e.target.value))}
-              />
-              <span>A+</span>
+            <label>字号: {fontSize}px</label>
+            <input
+              type="range"
+              min="12"
+              max="28"
+              value={fontSize}
+              onChange={(e) => setFontSize(parseInt(e.target.value))}
+              className={styles.slider}
+            />
+          </div>
+
+          {/* 字体风格 */}
+          <div className={styles.settingItem}>
+            <label>字体</label>
+            <div className={styles.fontOptions}>
+              {fontOptions.map((font) => (
+                <button
+                  key={font.name}
+                  className={`${styles.fontBtn} ${fontFamily === font.value ? styles.active : ''}`}
+                  style={{ fontFamily: font.value }}
+                  onClick={() => setFontFamily(font.value)}
+                >
+                  {font.name}
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* 行间距 */}
           <div className={styles.settingItem}>
-            <label>行距</label>
-            <div className={styles.sliderContainer}>
-              <span>紧凑</span>
-              <input
-                type="range"
-                min="1.4"
-                max="2.4"
-                step="0.1"
-                value={lineHeight}
-                onChange={(e) => setLineHeight(parseFloat(e.target.value))}
-              />
-              <span>宽松</span>
-            </div>
+            <label>行距: {lineHeight}</label>
+            <input
+              type="range"
+              min="1.4"
+              max="2.6"
+              step="0.1"
+              value={lineHeight}
+              onChange={(e) => setLineHeight(parseFloat(e.target.value))}
+              className={styles.slider}
+            />
           </div>
+
+          {/* 字间距 */}
           <div className={styles.settingItem}>
-            <label>亮度</label>
-            <div className={styles.sliderContainer}>
-              <span>🌙</span>
-              <input
-                type="range"
-                min="50"
-                max="150"
-                value={brightness}
-                onChange={(e) => setBrightness(parseInt(e.target.value))}
-              />
-              <span>☀️</span>
-            </div>
+            <label>字距: {letterSpacing}px</label>
+            <input
+              type="range"
+              min="0"
+              max="6"
+              step="0.5"
+              value={letterSpacing}
+              onChange={(e) => setLetterSpacing(parseFloat(e.target.value))}
+              className={styles.slider}
+            />
           </div>
+
+          {/* 亮度 */}
+          <div className={styles.settingItem}>
+            <label>亮度: {brightness}%</label>
+            <input
+              type="range"
+              min="50"
+              max="150"
+              value={brightness}
+              onChange={(e) => setBrightness(parseInt(e.target.value))}
+              className={styles.slider}
+            />
+          </div>
+
+          {/* 背景 */}
           <div className={styles.settingItem}>
             <label>背景</label>
             <div className={styles.bgOptions}>
@@ -206,12 +351,42 @@ function Reader() {
               ))}
             </div>
           </div>
+
+          {/* 自定义背景颜色 */}
+          <div className={styles.settingItem}>
+            <label>自定义背景</label>
+            <input
+              type="color"
+              value={customBgColor}
+              onChange={(e) => handleCustomBgChange(e.target.value)}
+              className={styles.colorPicker}
+            />
+            <span className={styles.colorValue}>{customBgColor}</span>
+          </div>
+
+          {/* 自定义字体颜色 */}
+          <div className={styles.settingItem}>
+            <label>自定义字体颜色</label>
+            <input
+              type="color"
+              value={customTextColor}
+              onChange={(e) => {
+                setCustomTextColor(e.target.value)
+                setTextColor(e.target.value)
+              }}
+              className={styles.colorPicker}
+            />
+            <span className={styles.colorValue}>{customTextColor}</span>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* 遮罩层 */}
+      {showSettings && <div className={styles.overlay} onClick={() => setShowSettings(false)} />}
+      {showToc && <div className={styles.overlay} onClick={() => setShowToc(false)} />}
 
       {/* 目录面板 */}
-      {showToc && (
-        <div className={styles.tocPanel}>
+      <div className={`${styles.tocPanel} ${showToc ? styles.open : ''}`}>
           <div className={styles.tocHeader}>
             <h3>目录</h3>
             <button onClick={() => setShowToc(false)} className={styles.closeBtn}>✕</button>
@@ -229,14 +404,16 @@ function Reader() {
             ))}
           </div>
         </div>
-      )}
 
       {/* 阅读内容 */}
       <div
         className={styles.content}
         ref={contentRef}
         onClick={(e) => {
-          // 点击内容区域切换顶部栏显示，但不在设置面板激活时关闭它
+          // 点击内容区域切换顶部栏显示，关闭目录面板
+          if (showToc) {
+            setShowToc(false)
+          }
           if (!showSettings) {
             setShowTopBar(!showTopBar)
           }
@@ -252,21 +429,24 @@ function Reader() {
             <div className={styles.meta}>
               <span>字数: {chapter?.word_count}</span>
             </div>
-            <div className={styles.textContent}>
-              {chapter?.content?.split('\n').map((paragraph, index) => (
-                paragraph.trim() && (
-                  <p key={index} className={styles.paragraph}>
-                    {paragraph}
-                  </p>
-                )
-              ))}
+            <div
+              className={styles.textContent}
+              style={{
+                fontFamily: fontFamily,
+                fontSize: `${fontSize}px`,
+                lineHeight: lineHeight,
+                letterSpacing: `${letterSpacing}px`,
+                color: textColor,
+              }}
+            >
+              <ReactMarkdown>{chapter?.content}</ReactMarkdown>
             </div>
           </article>
         )}
       </div>
 
       {/* 底部翻页 */}
-      <div className={`${styles.bottomBar} ${showTopBar ? styles.visible : ''}`}>
+      <div className={`${styles.bottomBar} ${!showTopBar ? styles.hidden : ''}`}>
         <button
           className={styles.navBtn}
           onClick={handlePrevChapter}
