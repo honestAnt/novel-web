@@ -469,3 +469,121 @@
     font-size: 1.2em;
   }
 }
+
+/* 沉浸式阅读模式 */
+.immersiveOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.immersiveTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.immersiveOverlay:hover .immersiveTop {
+  opacity: 1;
+}
+
+.immersiveExitBtn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.immersiveExitBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.immersiveContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 60px 60px 100px;
+  scroll-behavior: smooth;
+}
+
+.immersiveArticle {
+  max-width: none;
+  margin: 0 auto;
+  padding: 0 80px;
+}
+
+.immersiveTitle {
+  font-family: "Noto Serif SC", serif;
+  font-size: 1.4em;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 24px;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.immersiveText {
+  text-align: justify;
+}
+
+.immersiveText p {
+  margin-bottom: 1.5em;
+  text-indent: 2em;
+}
+
+.immersiveBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.immersiveOverlay:hover .immersiveBottom {
+  opacity: 1;
+}
+
+.immersiveNavBtn {
+  padding: 12px 24px;
+  border-radius: 6px;
+  background: rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  color: #e94560;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.immersiveNavBtn:hover:not(:disabled) {
+  background: rgba(233, 69, 96, 0.3);
+}
+
+.immersiveNavBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.immersiveProgress {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}

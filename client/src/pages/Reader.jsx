@@ -45,6 +45,37 @@ function Reader() {
   const [customBgColor, setCustomBgColor] = useState(savedSettings?.customBgColor || '#1c1c1c')
   const [customTextColor, setCustomTextColor] = useState(savedSettings?.customTextColor || '#c9c9c9')
 
+  // 沉浸式阅读模式
+  const [immersiveMode, setImmersiveMode] = useState(false)
+
+  // 沉浸式阅读模式控制
+  const toggleImmersiveMode = () => {
+    if (!immersiveMode) {
+      // 进入沉浸式模式
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen()
+      }
+      setImmersiveMode(true)
+    } else {
+      // 退出沉浸式模式
+      if (document.fullscreenElement) {
+        document.exitFullscreen()
+      }
+      setImmersiveMode(false)
+    }
+  }
+
+  // 监听全屏变化
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && immersiveMode) {
+        setImmersiveMode(false)
+      }
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [immersiveMode])
+
   const fontOptions = [
     { name: '默认', value: '"Noto Serif SC", serif' },
     { name: '黑体', value: '"Noto Sans SC", sans-serif' },
@@ -253,6 +284,9 @@ function Reader() {
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className={styles.iconBtn}>
             调整
+          </button>
+          <button onClick={toggleImmersiveMode} className={styles.iconBtn} title="沉浸式阅读">
+            全屏
           </button>
         </div>
       </div>
@@ -473,6 +507,58 @@ function Reader() {
           style={{ width: `${chapters.length ? ((currentIndex + 1) / chapters.length) * 100 : 0}%` }}
         />
       </div>
+
+      {/* 沉浸式阅读模式 */}
+      {immersiveMode && (
+        <div className={styles.immersiveOverlay} style={{ backgroundColor: bgColor }}>
+          {/* 顶部退出按钮 */}
+          <div className={styles.immersiveTop}>
+            <button onClick={toggleImmersiveMode} className={styles.immersiveExitBtn}>
+              ✕ 退出全屏
+            </button>
+          </div>
+
+          {/* 阅读内容 */}
+          <div className={styles.immersiveContent} ref={contentRef}>
+            <article className={styles.immersiveArticle}>
+              <h2 className={styles.immersiveTitle}>{chapter?.title}</h2>
+              <div
+                className={styles.immersiveText}
+                style={{
+                  fontFamily: fontFamily,
+                  fontSize: `${fontSize}px`,
+                  lineHeight: lineHeight,
+                  letterSpacing: `${letterSpacing}px`,
+                  color: textColor,
+                }}
+              >
+                <ReactMarkdown>{chapter?.content}</ReactMarkdown>
+              </div>
+            </article>
+          </div>
+
+          {/* 底部翻页 */}
+          <div className={styles.immersiveBottom}>
+            <button
+              className={styles.immersiveNavBtn}
+              onClick={handlePrevChapter}
+              disabled={!adjacentChapters.prev}
+            >
+              ← 上一章
+            </button>
+            <span className={styles.immersiveProgress}>
+              {currentIndex + 1} / {chapters.length}
+            </span>
+            <button
+              className={styles.immersiveNavBtn}
+              onClick={handleNextChapter}
+              disabled={!adjacentChapters.next}
+            >
+              下一章 →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
